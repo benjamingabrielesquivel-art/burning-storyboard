@@ -136,6 +136,8 @@ article.card.glow .frame { outline: 2px solid var(--k-master); box-shadow: 0 0 0
 .lyr .chips a.thumb.got { opacity: .55; }
 .lyr .chips .none { font-family: var(--mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--dim); }
 @media (max-width: 720px) { .lyr li { grid-template-columns: minmax(0, 1fr); } .lyr .chips { justify-content: flex-start; max-width: none; } .lyr .chips a.thumb { width: calc(50% - 3px); } }
+.lyr li.has { grid-template-columns: minmax(0, 1fr); }
+.lyr .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 26px; margin-top: 10px; }
 footer { margin-top: 60px; padding-top: 18px; border-top: 1px solid var(--rule); font-family: var(--type); font-size: 13.5px; color: var(--ash); max-width: 72ch; }
 </style>
 
@@ -228,6 +230,12 @@ document.getElementById('list').innerHTML = `<table><thead><tr><th>#</th><th>Fra
     + `<section><h3>Before the music</h3><ol>${special('Cold open – sermon (before the music)', 'Cold open: the sermon')}</ol></section>`
     + blocks.map(b => `<section><h3>${esc(b.part)}</h3><ol>${b.rows.join('')}</ol></section>`).join('')
     + `<section><h3>Under the whole song</h3><ol>${row('The masters, full-song passes', masters, 'stage')}${broll.length ? row('Inserts with no fixed place', broll, 'stage') : ''}</ol></section>`;
+  document.querySelectorAll('#lyrics li').forEach(li => {
+    const ns = [...li.querySelectorAll('a.thumb')].map(x => x.dataset.n); if (!ns.length) return;
+    const g = document.createElement('div'); g.className = 'cards';
+    ns.forEach(n => { const c = document.getElementById('shot-' + n); if (c) { const k = c.cloneNode(true); k.removeAttribute('id'); g.append(k); } });
+    li.querySelector('.chips').remove(); li.classList.add('has'); li.append(g);
+  });
 }
 function setView(v) {
   document.getElementById('board').hidden = v !== 'board'; document.getElementById('list').hidden = v !== 'list'; document.getElementById('lyrics').hidden = v !== 'lyrics';
