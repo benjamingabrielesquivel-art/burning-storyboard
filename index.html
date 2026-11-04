@@ -124,14 +124,18 @@ article.card.glow .frame { outline: 2px solid var(--k-master); box-shadow: 0 0 0
 .lyr .lead { margin: 0; max-width: 70ch; font-size: 14.5px; color: var(--ash); }
 .lyr h3 { margin: 0 0 6px; font-family: var(--display); font-style: italic; font-weight: 400; font-size: clamp(24px, 3.4vw, 32px); color: var(--bone); }
 .lyr ol { list-style: none; margin: 0; padding: 0; display: grid; }
-.lyr li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px 14px; align-items: baseline; padding: 9px 4px; border-bottom: 1px solid var(--rule); }
+.lyr li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px 18px; align-items: start; padding: 12px 4px; border-bottom: 1px solid var(--rule); }
 .lyr .line { font-family: var(--type); font-size: 16px; color: var(--bone); overflow-wrap: anywhere; }
 .lyr .line.none { color: var(--dim); }
 .lyr .line.stage { font-family: var(--mono); font-size: 12px; letter-spacing: .1em; text-transform: uppercase; color: var(--ash); }
-.lyr .chips { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }
-.lyr .chips a.jump { font-family: var(--mono); font-size: 12.5px; padding: 3px 8px; border: 1px solid currentColor; border-radius: 3px; }
+.lyr .chips { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; max-width: 504px; }
+.lyr .chips a.thumb { position: relative; display: block; width: 160px; max-width: 100%; aspect-ratio: 16 / 9; border: 2px solid currentColor; border-radius: 3px; overflow: hidden; background: #000; }
+.lyr .chips a.thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.lyr .chips a.thumb span { position: absolute; left: 0; top: 0; padding: 2px 7px; background: rgba(13,12,11,.82); font-family: var(--mono); font-size: 12.5px; color: currentColor; }
+.lyr .chips a.thumb:hover, .lyr .chips a.thumb:focus-visible { outline: 2px solid var(--k-master); outline-offset: 2px; }
+.lyr .chips a.thumb.got { opacity: .55; }
 .lyr .chips .none { font-family: var(--mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--dim); }
-@media (max-width: 560px) { .lyr li { grid-template-columns: minmax(0, 1fr); } .lyr .chips { justify-content: flex-start; } }
+@media (max-width: 720px) { .lyr li { grid-template-columns: minmax(0, 1fr); } .lyr .chips { justify-content: flex-start; max-width: none; } .lyr .chips a.thumb { width: calc(50% - 3px); } }
 footer { margin-top: 60px; padding-top: 18px; border-top: 1px solid var(--rule); font-family: var(--type); font-size: 13.5px; color: var(--ash); max-width: 72ch; }
 </style>
 
@@ -205,7 +209,7 @@ document.getElementById('list').innerHTML = `<table><thead><tr><th>#</th><th>Fra
 {
   const norm = t => String(t || '').toLowerCase().replace(/[’‘]/g, "'").replace(/\s+/g, ' ').trim();
   const byPart = {}; SHOTS.forEach(s => { (byPart[norm(s.part)] = byPart[norm(s.part)] || []).push(s); });
-  const chips = list => list.length ? list.map(s => `<a class="jump k-${esc(s.kind)}" href="#shot-${esc(String(s.num).toLowerCase())}" data-n="${esc(String(s.num).toLowerCase())}" title="${esc(s.via || '')}">${esc(s.num)}</a>`).join('') : '<span class="none">masters · Victoria</span>';
+  const chips = list => list.length ? list.map(s => { const n = esc(String(s.num).toLowerCase()); return `<a class="jump thumb k-${esc(s.kind)}" href="#shot-${n}" data-n="${n}" title="${esc(s.via || '')}"><img src="frames/frame-${n}.jpg" alt="Shot ${esc(s.num)}" loading="lazy" width="160" height="90"><span>${esc(s.num)}</span></a>`; }).join('') : '<span class="none">masters · Victoria</span>';
   const row = (text, list, cls = '') => `<li><span class="line ${cls}${list.length ? '' : ' none'}">${esc(text)}</span><span class="chips">${chips(list)}</span></li>`;
   const blocks = []; let cur = null, seen = {};
   const L = META.lyrics || [];
