@@ -107,9 +107,15 @@ details.setups summary:focus-visible { outline: 1px solid var(--ember); outline-
 .howto b { color: var(--k-frommaster); font-weight: 400; }
 a.jump { color: inherit; text-decoration: none; border-bottom: 1px dotted currentColor; }
 a.jump:hover, a.jump:focus-visible { border-bottom-style: solid; outline: none; }
-a.jump.got::after { content: " ✓"; }
-.tick { display: inline-flex; align-items: center; gap: 8px; font-family: var(--mono); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--k-frommaster); cursor: pointer; }
+a.jump.got { text-decoration: line-through; opacity: .75; }
+.tick { display: inline-flex; align-items: center; gap: 8px; font-family: var(--mono); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--bone); cursor: pointer; }
 .tick input { width: 18px; height: 18px; accent-color: var(--k-frommaster); margin: 0; }
+.tick.from { color: var(--k-frommaster); }
+.band { background: var(--k-frommaster); color: #0d0c0b; font-family: var(--mono); font-size: 11.5px; letter-spacing: .08em; text-transform: uppercase; padding: 7px 10px; }
+.tk { display: inline-flex; align-items: center; gap: 5px; margin: 2px 12px 2px 0; white-space: nowrap; }
+.tk input { width: 16px; height: 16px; accent-color: var(--k-frommaster); margin: 0; }
+.cutlbl { color: var(--k-frommaster); font-family: var(--mono); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; margin: 0 8px 0 4px; }
+td.prog { font-family: var(--mono); white-space: nowrap; color: var(--ash); } td.prog.done { color: var(--k-frommaster); }
 article.card { scroll-margin-top: 76px; }
 article.card.glow .frame { outline: 2px solid var(--k-master); box-shadow: 0 0 0 4px rgba(224,184,90,.25), 0 0 38px 6px rgba(224,184,90,.55); animation: glowpulse 1.1s ease-in-out 3; }
 @keyframes glowpulse { 50% { box-shadow: 0 0 0 6px rgba(224,184,90,.4), 0 0 60px 14px rgba(224,184,90,.8); } }
@@ -129,7 +135,7 @@ footer { margin-top: 60px; padding-top: 18px; border-top: 1px solid var(--rule);
       <button id="v-list" type="button" aria-pressed="false">Shot list</button>
     </div>
   </header>
-  <details class="setups" id="setups" open><summary>Set-ups in shooting order</summary><div id="setuplist"></div></details>
+  <details class="setups" id="setups" open><summary>Tick-off list, in shooting order</summary><div id="setuplist"></div></details>
   <nav class="parts" id="parts" aria-label="Song parts"></nav>
   <main id="board"></main>
   <div class="tablewrap" id="list" hidden></div>
@@ -150,9 +156,11 @@ const tag = s => s.kind === 'master' ? 'Master' : s.kind === 'frommaster' ? s.vi
 const kindTag = s => s.kind ? `<span class="kind k-${s.kind}">${esc(tag(s))}</span>` : '';
 document.getElementById('facts').innerHTML = `<span><b>${nSet}</b> camera set-ups</span><span><b>${C.frommaster || 0}</b> cuts from the masters, to tick off</span><span>${esc(META.cast)}</span><span>song <b>${esc(META.song)}</b></span><span>${esc(META.day)}</span>`;
 document.getElementById('legend').innerHTML = `<span class="kind k-master">Master: full-song Steadicam pass</span><span class="kind k-frommaster">Cut from a master: tick it off</span><span class="kind k-shared">Same set-up as another shot</span><span class="kind k-own">Own set-up</span>`;
+const tk = s => { const n = esc(String(s.num).toLowerCase()); return `<span class="tk"><input type="checkbox" data-cut="${n}" aria-label="Got shot ${esc(s.num)}"><a class="jump k-${s.kind}" href="#shot-${n}" data-n="${n}">${esc(s.num)}</a></span>`; };
+const cutsOf = list => list.filter(s => s.kind === 'frommaster');
 const ORDER = [['Outside, morning light', ['S1', 'S2']], ['Cold open, pale daylight', ['S3', 'S4', 'S5', 'S6']], ['Inner world: the masters, full song on Steadicam', ['M1', 'M4', 'M2', 'M5', 'M6', 'M7', 'M3']], ['Inner world: coverage', ['S7', 'S8', 'S9', 'S10', 'S15', 'S16']], ['The pile', ['S11', 'S12', 'S13']], ['The ending', ['S14']]];
-document.getElementById('setuplist').innerHTML = `<p class="intro">${nSet} camera set-ups: ${C.master} masters that each run the whole song on Steadicam, so there is no track or tripod to rebuild between them, and ${C.own} set-ups. Green numbers are cuts inside the masters: tick them off on their card. Blue ones share another shot's set-up. If the day runs long, M3 goes first.</p><div class="tablewrap" style="margin-top:12px"><table><thead><tr><th>Set-up</th><th>Shots it gives</th><th>Lens · rig</th></tr></thead><tbody>${
-  ORDER.map(([blk, ids]) => `<tr class="blk"><td colspan="3">${esc(blk)}</td></tr>` + ids.map(id => { const lead = SHOTS.find(s => s.setup === id && s.kind !== 'frommaster' && s.kind !== 'shared') || SHOTS.find(s => s.setup === id); if (!lead) return ''; const got = SHOTS.filter(s => s.setup === id); return `<tr><td class="sid"><span class="kind k-${lead.kind}">${esc(id)}</span></td><td>${got.map(s => `<a class="jump k-${s.kind}" href="#shot-${esc(String(s.num).toLowerCase())}" data-n="${esc(String(s.num).toLowerCase())}">${esc(s.num)}</a>`).join(', ')}</td><td>${esc([lead.lens, lead.rig].filter(Boolean).join(' · '))}</td></tr>`; }).join('')).join('')
+document.getElementById('setuplist').innerHTML = `<p class="intro">${nSet} camera set-ups: ${C.master} masters that each run the whole song on Steadicam, so there is no track or tripod to rebuild between them, and ${C.own} set-ups. Tick each shot when it's in the can; these boxes and the ones on the frames are the same. The green numbers on a master's row are cuts that come out of that master: tick them while shooting it. Blue ones share another shot's set-up. If the day runs long, M3 goes first.</p><div class="tablewrap" style="margin-top:12px"><table><thead><tr><th>Set-up</th><th>Shots it gives</th><th>Done</th><th>Lens · rig</th></tr></thead><tbody>${
+  ORDER.map(([blk, ids]) => `<tr class="blk"><td colspan="4">${esc(blk)}</td></tr>` + ids.map(id => { const lead = SHOTS.find(s => s.setup === id && s.kind !== 'frommaster' && s.kind !== 'shared') || SHOTS.find(s => s.setup === id); if (!lead) return ''; const got = SHOTS.filter(s => s.setup === id); return `<tr><td class="sid"><span class="kind k-${lead.kind}">${esc(id)}</span></td><td>${id.startsWith('M') ? `${tk(lead)}<span class="cutlbl">pass</span>${cutsOf(got).length ? `<br><span class="cutlbl">cuts to tick while shooting it:</span>${cutsOf(got).map(tk).join('')}` : ''}` : got.map(tk).join('')}</td><td class="prog" data-ids="${got.map(s => String(s.num).toLowerCase()).join(',')}"></td><td>${esc([lead.lens, lead.rig].filter(Boolean).join(' · '))}</td></tr>`; }).join('')).join('')
 }</tbody></table></div>`;
 document.getElementById('parts').innerHTML = groups.map(g => `<a href="#${pid(g.name)}">${esc(g.name)}</a>`).join('');
 document.getElementById('board').innerHTML = groups.map(g => `
@@ -161,9 +169,10 @@ document.getElementById('board').innerHTML = groups.map(g => `
   <div class="grid">${g.shots.map(s => `
     <article class="card k-${esc(s.kind)}" id="shot-${esc(String(s.num).toLowerCase())}">
       <span class="tape l"></span><span class="tape r"></span>
+      ${s.kind === 'frommaster' ? `<div class="band">Cut from ${esc(s.setup)}: tick it off while shooting ${esc(s.setup)}</div>` : ''}
       <div class="frame"><video muted loop playsinline preload="none" poster="frames/frame-${esc(String(s.num).toLowerCase())}.jpg" data-src="loops/loop-${esc(String(s.num).toLowerCase())}.mp4" aria-label="Shot ${esc(s.num)}, moving"></video></div>
       <div class="slate"><span class="num">${esc(s.num)}</span><span class="size">${esc([s.size, s.type].filter(Boolean).join(' · '))}</span>${kindTag(s)}${pri(s.priority)}</div>
-      ${s.kind === 'frommaster' ? `<label class="tick"><input type="checkbox" data-cut="${esc(String(s.num).toLowerCase())}"> Got it in ${esc(s.setup)}</label>` : ''}
+      <label class="tick${s.kind === 'frommaster' ? ' from' : ''}"><input type="checkbox" data-cut="${esc(String(s.num).toLowerCase())}" aria-label="Got shot ${esc(s.num)}"> ${s.kind === 'frommaster' ? 'Got it in ' + esc(s.setup) : 'Got it'}</label>
       <p class="desc">${esc(s.desc)}</p>
       <div class="plan"><img src="frames/plan-${esc(String(s.num).toLowerCase())}.jpg" width="840" height="400" loading="lazy" alt="Camera plan from above for shot ${esc(s.num)}"></div>
       
@@ -199,8 +208,13 @@ function goShot(n, smooth = true) {
 document.addEventListener('click', e => { const a = e.target.closest('a.jump'); if (!a) return; e.preventDefault(); goShot(a.dataset.n); });
 /* cuts from the masters: tick them off on the day (saved in this browser) */
 const cutKey = n => 'burning-cut-' + n;
-function markCuts() { document.querySelectorAll('a.jump.k-frommaster').forEach(a => { let on = false; try { on = localStorage.getItem(cutKey(a.dataset.n)) === '1'; } catch (e) {} a.classList.toggle('got', on); }); }
-document.querySelectorAll('input[data-cut]').forEach(cb => { try { cb.checked = localStorage.getItem(cutKey(cb.dataset.cut)) === '1'; } catch (e) {} cb.addEventListener('change', () => { try { localStorage.setItem(cutKey(cb.dataset.cut), cb.checked ? '1' : '0'); } catch (e) {} markCuts(); }); });
+const isGot = n => { try { return localStorage.getItem(cutKey(n)) === '1'; } catch (e) { return false; } };
+function markCuts() {
+  document.querySelectorAll('input[data-cut]').forEach(cb => { cb.checked = isGot(cb.dataset.cut); });
+  document.querySelectorAll('a.jump').forEach(a => a.classList.toggle('got', isGot(a.dataset.n)));
+  document.querySelectorAll('td.prog').forEach(td => { const ids = td.dataset.ids.split(','), d = ids.filter(isGot).length; td.textContent = d + ' / ' + ids.length; td.classList.toggle('done', d === ids.length); });
+}
+document.addEventListener('change', e => { const cb = e.target.closest('input[data-cut]'); if (!cb) return; try { localStorage.setItem(cutKey(cb.dataset.cut), cb.checked ? '1' : '0'); } catch (e2) {} markCuts(); });
 markCuts();
 { const m = location.hash.match(/^#shot-([a-z0-9]+)$/); if (m) setTimeout(() => goShot(m[1], false), 300); }
 /* each frame plays its own loop while it is on screen (not for people who ask for less motion) */
