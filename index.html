@@ -210,9 +210,9 @@ document.getElementById('board').innerHTML = groups.map(g => `
       ${s.notes ? `<div class="note">${esc(s.notes)}</div>` : ''}
     </article>`).join('')}</div>
 </section>`).join('');
-document.getElementById('list').innerHTML = `<table><thead><tr><th>#</th><th>Frame</th><th>Description</th><th>Size · type</th><th>Angle</th><th>Move</th><th>Rig</th><th>Lens · fps</th><th>Sec</th><th>Priority</th><th>Set-up</th></tr></thead><tbody>${
-  groups.map(g => `<tr class="parthead"><td colspan="11">${esc(g.name)}</td></tr>` + g.shots.map(s => `<tr>
-    <td class="n"><a class="jump" href="#shot-${esc(String(s.num).toLowerCase())}" data-n="${esc(String(s.num).toLowerCase())}">${esc(s.num)}</a></td><td><img src="frames/frame-${esc(String(s.num).toLowerCase())}.jpg" loading="lazy" alt="Shot ${esc(s.num)}"></td>
+document.getElementById('list').innerHTML = `<table><thead><tr><th>#</th><th>Frame</th><th>Lyrics</th><th>Description</th><th>Size · type</th><th>Angle</th><th>Move</th><th>Rig</th><th>Lens · fps</th><th>Sec</th><th>Priority</th><th>Set-up</th></tr></thead><tbody>${
+  groups.map(g => `<tr class="parthead"><td colspan="12">${esc(g.name)}</td></tr>` + g.shots.map(s => `<tr>
+    <td class="n"><a class="jump" href="#shot-${esc(String(s.num).toLowerCase())}" data-n="${esc(String(s.num).toLowerCase())}">${esc(s.num)}</a></td><td><img src="frames/frame-${esc(String(s.num).toLowerCase())}.jpg" loading="lazy" alt="Shot ${esc(s.num)}"></td><td style="min-width:150px;font-style:italic">${partCue(s.part) ? '“' + esc(partCue(s.part)) + '”' : esc(partName(s.part))}</td>
     <td>${esc(s.desc)}${s.notes ? `<div class="sub">${esc(s.notes)}</div>` : ''}</td>
     <td>${esc(s.size)}<div class="sub">${esc(s.type)}</div></td><td>${esc(s.angle)}</td><td>${esc(s.move)}</td><td>${esc(s.rig)}</td>
     <td>${esc(s.lens)}<div class="sub">${esc(s.fps)}</div></td><td>${esc(s.dur ?? '')}</td><td>${esc(s.priority)}</td><td>${kindTag(s)}</td></tr>`).join('')).join('')
