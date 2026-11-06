@@ -314,6 +314,95 @@ markCuts();
   vids.forEach(v => io.observe(v));
 })();
 </script>
+<style>
+#ed-bar{position:fixed;right:14px;bottom:14px;z-index:60;display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;max-width:calc(100vw - 28px);font:600 13px/1.2 system-ui,sans-serif}
+#ed-bar button{padding:9px 12px;border-radius:6px;border:1px solid #E0B85A;background:#1A1712;color:#F2EAD8;cursor:pointer}
+#ed-bar button.on{background:#E0B85A;color:#1A1712}
+#ed-bar .msg{flex-basis:100%;text-align:right;color:#F2EAD8;background:rgba(0,0,0,.78);padding:7px 9px;border-radius:4px;font-weight:400}
+body.editing [data-ek]{outline:1px dashed rgba(224,184,90,.75);outline-offset:2px;cursor:text}
+body.editing [data-ek]:focus{outline:2px solid #E0B85A;background:rgba(224,184,90,.1)}
+body.editing .frame,body.editing .plan{cursor:copy}
+.ed-hide{position:absolute;top:8px;right:8px;z-index:3;font:600 12px system-ui,sans-serif;padding:5px 8px;border-radius:4px;border:1px solid #E0B85A;background:#1A1712;color:#F2EAD8;cursor:pointer}
+article.card.ed-hidden{display:none}
+body.editing article.card.ed-hidden{display:grid;opacity:.35}
+</style>
+<script>
+/* Edit on the page: every text, every frame (click it to replace it) and hide or show any shot. Edits are saved in this browser;
+   Export makes edits.json, and once that file sits next to index.html on the site, everyone sees the edits. */
+(() => {
+  const LS = 'burning-edits-v1', SEL = 'h1, h2, p, dd, dt, th, td, li, .num, .size, .lyric, .band, .note, .sub, .kind, .pri, figcaption', ROOTS = 'header, #setups, #board, #list, #lyrics, #studio';
+  const BAD = 'input, img, video, canvas, button, select, textarea, a.jump, svg';
+  const hash = s => { let x = 5381; for (let i = 0; i < s.length; i++) x = (x * 33 ^ s.charCodeAt(i)) >>> 0; return x.toString(36); };
+  const clean = s => String(s).replace(/<\s*\/?\s*(script|iframe|object|embed|style)[^>]*>/gi, '').replace(/\son\w+\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, '').replace(/javascript:/gi, '');
+  let shared = { t: {}, img: {}, hide: {} }, local = { t: {}, img: {}, hide: {} }, editing = false, st, mt;
+  try { const d = JSON.parse(localStorage.getItem(LS) || '{}'); for (const k of ['t', 'img', 'hide']) local[k] = d[k] || {}; } catch (e) {}
+  const all = () => ({ t: Object.assign({}, shared.t, local.t), img: Object.assign({}, shared.img, local.img), hide: Object.assign({}, shared.hide, local.hide) });
+  const bar = document.createElement('div'); bar.id = 'ed-bar';
+  bar.innerHTML = '<button type="button" data-a="edit">Edit page</button><button type="button" data-a="export" hidden>Export</button><button type="button" data-a="import" hidden>Import</button><button type="button" data-a="reset" hidden>Undo my edits</button><span class="msg" hidden></span>';
+  document.body.appendChild(bar);
+  const msg = t => { const m = bar.querySelector('.msg'); m.textContent = t; m.hidden = !t; };
+  const save = () => { try { localStorage.setItem(LS, JSON.stringify(local)); msg('Saved in this browser.'); } catch (e) { msg('This browser is full: press Export now to keep your edits.'); } };
+  function scan() {
+    const E = all();
+    document.querySelectorAll(ROOTS).forEach(root => root.querySelectorAll(SEL).forEach(el => {
+      if (el.dataset.eo != null || (el.parentElement && el.parentElement.closest('[data-eo]')) || el.querySelector(BAD) || el.closest('label, summary, #ed-bar')) return;
+      el.dataset.eo = el.innerHTML;
+    }));
+    document.querySelectorAll('[data-eo]:not([data-ek])').forEach(el => {
+      const o = el.dataset.eo, plain = o.replace(/<[^>]*>/g, '').trim(); let k;
+      if (plain.length >= 40) k = 't' + hash(o);
+      else { const r = el.parentElement.closest('[id]'); k = 'p' + (r ? r.id : '') + ':' + [...(r || document).querySelectorAll('[data-eo]')].indexOf(el) + ':' + hash(o); }
+      el.dataset.ek = k; if (E.t[k] != null) el.innerHTML = clean(E.t[k]); if (editing) el.contentEditable = 'true';
+    });
+    document.querySelectorAll(ROOTS).forEach(root => root.querySelectorAll('img, video[poster]').forEach(m => {
+      const a = m.tagName === 'VIDEO' ? 'poster' : 'src'; if (m.dataset.os == null) m.dataset.os = m.getAttribute(a) || ''; const v = E.img[m.dataset.os];
+      if (v && m.getAttribute(a) !== v) { m.setAttribute(a, v); if (a === 'poster') { m.removeAttribute('data-src'); if (m.getAttribute('src')) { m.removeAttribute('src'); m.load(); } } }
+    }));
+    document.querySelectorAll('article.card').forEach(c => {
+      if (!c.dataset.ck) { const r = c.parentElement.closest('[id]'), n = c.querySelector('.num'); c.dataset.ck = c.id || ((r ? r.id : '') + ':' + (n ? n.dataset.eo || n.textContent : '')); }
+      c.classList.toggle('ed-hidden', !!E.hide[c.dataset.ck]);
+      let b = c.querySelector(':scope > .ed-hide');
+      if (editing && !b) { b = document.createElement('button'); b.type = 'button'; b.className = 'ed-hide'; c.appendChild(b); b.onclick = ev => { ev.stopPropagation(); local.hide[c.dataset.ck] = !all().hide[c.dataset.ck]; save(); scan(); }; }
+      if (b) { b.hidden = !editing; const t = all().hide[c.dataset.ck] ? 'Show this shot' : 'Hide this shot'; if (b.textContent !== t) b.textContent = t; }
+    });
+  }
+  function setEdit(on) {
+    editing = on; document.body.classList.toggle('editing', on);
+    const eb = bar.querySelector('[data-a=edit]'); eb.textContent = on ? 'Done editing' : 'Edit page'; eb.classList.toggle('on', on);
+    bar.querySelectorAll('[data-a=export],[data-a=import],[data-a=reset]').forEach(b => b.hidden = !on);
+    document.querySelectorAll('[data-ek]').forEach(el => { if (on) el.contentEditable = 'true'; else el.removeAttribute('contenteditable'); });
+    scan(); msg(on ? 'Click any text to change it; click a frame or a plan to replace the picture. Everything saves in this browser.' : '');
+  }
+  function pickImage(m) {
+    if (!m) return; const inp = document.createElement('input'); inp.type = 'file'; inp.accept = 'image/*';
+    inp.onchange = () => { const f = inp.files[0]; if (!f) return; const im = new Image();
+      im.onload = () => { const W = Math.min(960, im.naturalWidth), c = document.createElement('canvas'); c.width = W; c.height = Math.round(im.naturalHeight * W / im.naturalWidth); c.getContext('2d').drawImage(im, 0, 0, c.width, c.height); URL.revokeObjectURL(im.src); local.img[m.dataset.os] = c.toDataURL('image/jpeg', .82); save(); scan(); };
+      im.src = URL.createObjectURL(f); };
+    inp.click();
+  }
+  bar.addEventListener('click', e => {
+    const a = e.target.dataset && e.target.dataset.a; if (!a) return;
+    if (a === 'edit') setEdit(!editing);
+    if (a === 'export') { const b = new Blob([JSON.stringify(Object.assign({ about: 'BURNING storyboard edits. Upload as edits.json next to index.html and everyone sees them.' }, all()))], { type: 'application/json' }); const l = document.createElement('a'); l.href = URL.createObjectURL(b); l.download = 'edits.json'; document.body.appendChild(l); l.click(); l.remove(); msg('edits.json is in your Downloads. Upload it to the site to show your edits to everyone.'); }
+    if (a === 'import') { const inp = document.createElement('input'); inp.type = 'file'; inp.accept = '.json,application/json'; inp.onchange = async () => { try { const d = JSON.parse(await inp.files[0].text()); for (const k of ['t', 'img', 'hide']) Object.assign(local[k], d[k] || {}); save(); location.reload(); } catch (err) { msg('That file is not an edits file.'); } }; inp.click(); }
+    if (a === 'reset' && confirm('Undo every edit made in this browser? Edits already uploaded to the site stay.')) { try { localStorage.removeItem(LS); } catch (err) {} location.reload(); }
+  });
+  document.addEventListener('click', e => {
+    if (!editing || e.target.closest('#ed-bar, .ed-hide')) return;
+    const fr = e.target.closest('.frame, .plan'); if (fr) { e.preventDefault(); e.stopImmediatePropagation(); pickImage(fr.querySelector('img, video')); return; }
+    if (e.target.closest('[data-ek]')) { e.stopImmediatePropagation(); if (e.target.closest('a')) e.preventDefault(); }
+  }, true);
+  document.addEventListener('input', e => {
+    const el = e.target.closest && e.target.closest('[data-ek]'); if (!el || !editing) return;
+    const k = el.dataset.ek, v = el.innerHTML; if (v === el.dataset.eo && shared.t[k] == null) delete local.t[k]; else local.t[k] = v;
+    if (k[0] === 't') document.querySelectorAll('[data-ek="' + k + '"]').forEach(o => { if (o !== el) o.innerHTML = v; });
+    clearTimeout(st); st = setTimeout(save, 300);
+  });
+  document.addEventListener('paste', e => { if (!editing || !e.target.closest || !e.target.closest('[data-ek]')) return; e.preventDefault(); document.execCommand('insertText', false, (e.clipboardData || window.clipboardData).getData('text/plain')); });
+  const go = () => { scan(); const mo = new MutationObserver(() => { clearTimeout(mt); mt = setTimeout(scan, 200); }); document.querySelectorAll(ROOTS).forEach(r => mo.observe(r, { childList: true, subtree: true })); };
+  fetch('edits.json', { cache: 'no-store' }).then(r => r.ok ? r.json() : null).then(d => { if (d) for (const k of ['t', 'img', 'hide']) shared[k] = d[k] || {}; }).catch(() => {}).then(go);
+})();
+</script>
 
 </body>
 </html>
