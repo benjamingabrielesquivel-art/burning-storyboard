@@ -315,7 +315,7 @@ markCuts();
 })();
 </script>
 <style>
-#ed-bar{position:fixed;right:14px;bottom:14px;z-index:60;display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;max-width:calc(100vw - 28px);font:600 13px/1.2 system-ui,sans-serif}
+#ed-bar{position:fixed;right:14px;bottom:14px;z-index:2147483647;display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;max-width:calc(100vw - 28px);font:600 13px/1.2 system-ui,sans-serif}
 #ed-bar button{padding:9px 12px;border-radius:6px;border:1px solid #E0B85A;background:#1A1712;color:#F2EAD8;cursor:pointer}
 #ed-bar button.on{background:#E0B85A;color:#1A1712}
 #ed-bar .msg{flex-basis:100%;text-align:right;color:#F2EAD8;background:rgba(0,0,0,.78);padding:7px 9px;border-radius:4px;font-weight:400}
@@ -340,6 +340,7 @@ body.editing article.card.ed-hidden{display:grid;opacity:.35}
   const bar = document.createElement('div'); bar.id = 'ed-bar';
   bar.innerHTML = '<button type="button" data-a="edit">Edit page</button><button type="button" data-a="export" hidden>Export</button><button type="button" data-a="import" hidden>Import</button><button type="button" data-a="reset" hidden>Undo my edits</button><span class="msg" hidden></span>';
   document.body.appendChild(bar);
+  { const seg = document.querySelector('.seg'); if (seg) { const hb = document.createElement('button'); hb.type = 'button'; hb.id = 'v-edit'; hb.textContent = 'Edit'; hb.setAttribute('aria-pressed', 'false'); hb.onclick = () => setEdit(!editing); seg.appendChild(hb); } }
   const msg = t => { const m = bar.querySelector('.msg'); m.textContent = t; m.hidden = !t; };
   const save = () => { try { localStorage.setItem(LS, JSON.stringify(local)); msg('Saved in this browser.'); } catch (e) { msg('This browser is full: press Export now to keep your edits.'); } };
   function scan() {
@@ -368,7 +369,7 @@ body.editing article.card.ed-hidden{display:grid;opacity:.35}
   }
   function setEdit(on) {
     editing = on; document.body.classList.toggle('editing', on);
-    const eb = bar.querySelector('[data-a=edit]'); eb.textContent = on ? 'Done editing' : 'Edit page'; eb.classList.toggle('on', on);
+    const eb = bar.querySelector('[data-a=edit]'); eb.textContent = on ? 'Done editing' : 'Edit page'; eb.classList.toggle('on', on); const hb = document.getElementById('v-edit'); if (hb) { hb.setAttribute('aria-pressed', on); hb.textContent = on ? 'Done editing' : 'Edit'; }
     bar.querySelectorAll('[data-a=export],[data-a=import],[data-a=reset]').forEach(b => b.hidden = !on);
     document.querySelectorAll('[data-ek]').forEach(el => { if (on) el.contentEditable = 'true'; else el.removeAttribute('contenteditable'); });
     scan(); msg(on ? 'Click any text to change it; click a frame or a plan to replace the picture. Everything saves in this browser.' : '');
